@@ -6,7 +6,9 @@ A modern full-stack web application for creating and managing menus with a clean
 
 ## Demo
 
-Watch the app in action: [Recipe Generator Demo](docs/demo/recipe-generator-demo.mp4)
+Watch the app in action:
+
+https://github.com/user-attachments/assets/a82ff4b9-df0e-4f7f-a009-a7c46023f6e2
 
 ## Features
 
