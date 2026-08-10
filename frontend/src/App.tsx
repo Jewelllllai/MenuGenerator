@@ -132,7 +132,12 @@ function App() {
       setResult(response.data);
     } catch (uploadError) {
       console.error("Upload failed:", uploadError);
-      setError("Failed to generate recipe. Please try again.");
+      if (axios.isAxiosError(uploadError)) {
+        const detail = uploadError.response?.data?.detail;
+        setError(typeof detail === "string" ? detail : "Failed to generate recipe. Please try again.");
+      } else {
+        setError("Failed to generate recipe. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -144,85 +149,107 @@ function App() {
   return (
     <div className="app-shell">
       <div className="card">
-        <header>
-          <h1>AI Food Recipe Generator</h1>
-          <p>Upload a food image or use your camera, then generate a recipe instantly.</p>
+        <header className="app-header">
+          <div>
+            <span className="eyebrow">Image to recipe</span>
+            <h1>AI Food Recipe Generator</h1>
+            <p>Upload a food photo or use your camera, then turn it into a practical recipe.</p>
+          </div>
         </header>
 
-        <div className="controls">
-          <label className="file-label">
-            <span className="file-label-text">Choose image</span>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-          </label>
+        <section className="workspace">
+          <div className="input-panel">
+            <div className="controls">
+              <label className="file-label">
+                <span className="file-label-text">Choose image</span>
+                <span className="file-label-hint">{file ? file.name : "JPG, PNG, or camera photo"}</span>
+                <input type="file" accept="image/*" onChange={handleFileChange} />
+              </label>
 
-          <div className="camera-buttons">
-            {!cameraActive && (
-              <button className="ghost-btn" type="button" onClick={handleOpenCamera}>
-                Open Camera
-              </button>
-            )}
+              <div className="camera-buttons">
+                {!cameraActive && (
+                  <button className="ghost-btn" type="button" onClick={handleOpenCamera}>
+                    Open Camera
+                  </button>
+                )}
+                {cameraActive && (
+                  <>
+                    <button className="ghost-btn" type="button" onClick={stopCamera}>
+                      Close Camera
+                    </button>
+                    <button className="ghost-btn" type="button" onClick={handleCapturePhoto}>
+                      Capture Photo
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             {cameraActive && (
+              <div className="video-wrap">
+                <video ref={videoRef} className="video-preview" autoPlay muted playsInline />
+              </div>
+            )}
+
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+
+            <button className="primary-btn" onClick={handleUpload} disabled={!file || loading}>
+              {loading ? "Generating..." : "Generate Recipe"}
+            </button>
+
+            {error && <div className="alert">{error}</div>}
+          </div>
+
+          <div className="preview-panel">
+            {previewUrl ? (
               <>
-                <button className="ghost-btn" type="button" onClick={stopCamera}>
-                  Close Camera
-                </button>
-                <button className="ghost-btn" type="button" onClick={handleCapturePhoto}>
-                  Capture Photo
-                </button>
+                <div className="panel-heading">
+                  <span>Selected Image</span>
+                </div>
+                <img src={previewUrl} alt="Preview" className="preview-image" />
               </>
+            ) : (
+              <div className="empty-preview">
+                <span>Preview</span>
+                <p>Your selected food image will appear here.</p>
+              </div>
             )}
           </div>
-        </div>
-
-        {cameraActive && (
-          <div className="video-wrap">
-            <video ref={videoRef} className="video-preview" autoPlay muted playsInline />
-          </div>
-        )}
-
-        <canvas ref={canvasRef} style={{ display: "none" }} />
-
-        <button className="primary-btn" onClick={handleUpload} disabled={!file || loading}>
-          {loading ? "Generating..." : "Generate Recipe"}
-        </button>
-
-        {error && <div className="alert">{error}</div>}
-
-        {previewUrl && (
-          <section className="preview-section">
-            <h3>Selected Image</h3>
-            <img src={previewUrl} alt="Preview" className="preview-image" />
-          </section>
-        )}
+        </section>
 
         {result && (
           <section className="result-card">
-            <h2>{result.dish || "Generated Recipe"}</h2>
-
-            <div>
-              <h3>Ingredients</h3>
-              {ingredients.length > 0 ? (
-                <ul>
-                  {ingredients.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No ingredients found.</p>
-              )}
+            <div className="result-header">
+              <span className="eyebrow">Generated recipe</span>
+              <h2>{result.dish || "Generated Recipe"}</h2>
             </div>
 
-            <div>
-              <h3>Cooking Steps</h3>
-              {steps.length > 0 ? (
-                <ol>
-                  {steps.map((step, index) => (
-                    <li key={index}>{step}</li>
-                  ))}
-                </ol>
-              ) : (
-                <p>No steps found.</p>
-              )}
+            <div className="recipe-grid">
+              <div className="recipe-section">
+                <h3>Ingredients</h3>
+                {ingredients.length > 0 ? (
+                  <ul>
+                    {ingredients.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No ingredients found.</p>
+                )}
+              </div>
+
+              <div className="recipe-section">
+                <h3>Cooking Steps</h3>
+                {steps.length > 0 ? (
+                  <ol>
+                    {steps.map((step, index) => (
+                      <li key={index}>{step}</li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p>No steps found.</p>
+                )}
+              </div>
             </div>
           </section>
         )}

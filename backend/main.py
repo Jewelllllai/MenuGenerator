@@ -2,7 +2,8 @@ import base64
 import json
 import os
 import re
-from fastapi import FastAPI, UploadFile, File,  HTTPException
+import traceback
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from groq import Groq
 from dotenv import load_dotenv
@@ -19,7 +20,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+groq_api_key = os.environ.get("GROQ_API_KEY")
+groq_model = os.environ.get("GROQ_MODEL", "qwen/qwen3.6-27b")
+client = Groq(api_key=groq_api_key) if groq_api_key else None
 
 @app.get("/")
 def health():
@@ -30,12 +33,18 @@ async def generate_recipe(file: UploadFile = File(...)):
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
 
+    if client is None:
+        raise HTTPException(
+            status_code=500,
+            detail="GROQ_API_KEY is not configured. Add it to backend/.env and restart the backend server.",
+        )
+
     contents = await file.read()
     b64_image = base64.b64encode(contents).decode("utf-8")
 
     try:
         response = client.chat.completions.create(
-            model="meta-llama/llama-4-scout-17b-16e-instruct",
+            model=groq_model,
             messages=[
                 {
                     "role": "user",
@@ -58,6 +67,11 @@ async def generate_recipe(file: UploadFile = File(...)):
                     ],
                 }
             ],
+            response_format={"type": "json_object"},
+            reasoning_format="hidden",
+            reasoning_effort="none",
+            temperature=0.7,
+            top_p=0.8,
             max_tokens=1024,
         )
         extracted = response.choices[0].message.content
@@ -77,5 +91,9 @@ async def generate_recipe(file: UploadFile = File(...)):
             "steps": parsed.get("steps", []),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print("Recipe generation failed:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Recipe generation failed: {e}")
