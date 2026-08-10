@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+# Menu Generator 
+Full-stack menu generation application with a modern frontend and backend API, built using React/Vite and Python
+
 # Backend
 cd backend
 python -m venv venv
@@ -12,3 +16,4 @@ pnpm install
 pnpm install axios
 pnpm run dev
 pnpm add -D typescript @types/react @types/react-dom
+=======
